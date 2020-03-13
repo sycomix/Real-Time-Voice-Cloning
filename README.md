@@ -16,7 +16,6 @@ eval "$($HOME/miniconda/bin/conda shell.bash hook)"
 
 ### Activate conda enviroment
 
-conda create --name dles tensorflow-gpu=1.14.0 umap-learn visdom webrtcvad librosa>=0.5.1 matplotlib>=2.0.2 numpy>=1.14.0 scipy>=1.0.0 tqdm sounddevice Unidecode inflect PyQt5 multiprocess numba
 
 ```
 conda create -n dles python=3.7 pip -y
@@ -31,4 +30,9 @@ pip install -r rtvc/requirements.txt
 
 ### Play with the project
 
-TODO
+Run the code with (**Currently not working due to a missing lib**)
+
+```
+python demo_cli.py
+```
+
