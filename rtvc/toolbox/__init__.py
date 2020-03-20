@@ -207,6 +207,14 @@ class Toolbox:
         breaks = [np.zeros(int(0.15 * Synthesizer.sample_rate))] * len(breaks)
         wav = np.concatenate([i for w, b in zip(wavs, breaks) for i in (w, b)])
 
+        # Save it
+        wav = wav / np.abs(wav).max()
+        file_ = wave.open('vocoded-mimic.wav', 'w')
+        file_.setframerate(Synthesizer.sample_rate)
+        file_.setnchannels(2)
+        file_.setsampwidth(3)
+        file_.writeframes(wav)
+      
         # Play it
         wav = wav / np.abs(wav).max() * 0.97
         self.ui.play(wav, Synthesizer.sample_rate)
