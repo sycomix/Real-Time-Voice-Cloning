@@ -8,7 +8,8 @@ from toolbox.utterance import Utterance
 import numpy as np
 import traceback
 import sys
-
+import wave
+import os
 
 # Use this directory structure for your datasets, or modify it to fit your needs
 recognized_datasets = [
@@ -43,7 +44,14 @@ class Toolbox:
         self.current_generated = (None, None, None, None) # speaker_name, spec, breaks, wav
         
         self.synthesizer = None # type: Synthesizer
-        
+       
+        self.output_dir = 'output'
+        if not os.path.exists(self.output_dir):
+            try:
+                os.makedirs(self.output_dir)
+            except OSError:
+                print("error occured while creating folder: {0:}".format(self.output_dir))
+
         # Initialize the events and the interface
         self.ui = UI()
         self.reset_ui(enc_models_dir, syn_models_dir, voc_models_dir)
@@ -209,7 +217,7 @@ class Toolbox:
 
         # Save it
         wav = wav / np.abs(wav).max()
-        file_ = wave.open('vocoded-mimic.wav', 'w')
+        file_ = wave.open("{0:}/{1:}".format(self.output_dir, 'vocoded-mimic.wav'), 'w')
         file_.setframerate(Synthesizer.sample_rate)
         file_.setnchannels(2)
         file_.setsampwidth(3)
