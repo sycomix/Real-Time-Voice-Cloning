@@ -5,11 +5,14 @@ from vocoder import inference as vocoder
 from pathlib import Path
 from time import perf_counter as timer
 from toolbox.utterance import Utterance
+from scipy.io.wavfile import write
 import numpy as np
 import traceback
 import sys
 import wave
 import os
+
+
 
 # Use this directory structure for your datasets, or modify it to fit your needs
 recognized_datasets = [
@@ -216,15 +219,10 @@ class Toolbox:
         wav = np.concatenate([i for w, b in zip(wavs, breaks) for i in (w, b)])
 
         # Save it
-        wav = wav / np.abs(wav).max()
-        file_ = wave.open("{0:}/{1:}".format(self.output_dir, 'vocoded-mimic.wav'), 'w')
-        file_.setframerate(Synthesizer.sample_rate)
-        file_.setnchannels(2)
-        file_.setsampwidth(3)
-        file_.writeframes(wav)
+        wav = wav / np.abs(wav).max() * 0.97
+        write("{0:}/{1:}".format(self.output_dir, 'vocoded-mimic.wav'), Synthesizer.sample_rate, wav)
       
         # Play it
-        wav = wav / np.abs(wav).max() * 0.97
         self.ui.play(wav, Synthesizer.sample_rate)
 
         # Compute the embedding
