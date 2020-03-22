@@ -5,9 +5,13 @@ from vocoder import inference as vocoder
 from pathlib import Path
 from time import perf_counter as timer
 from toolbox.utterance import Utterance
+from scipy.io.wavfile import write
 import numpy as np
 import traceback
 import sys
+import wave
+import os
+
 
 
 # Use this directory structure for your datasets, or modify it to fit your needs
@@ -43,7 +47,14 @@ class Toolbox:
         self.current_generated = (None, None, None, None) # speaker_name, spec, breaks, wav
         
         self.synthesizer = None # type: Synthesizer
-        
+       
+        self.output_dir = 'output'
+        if not os.path.exists(self.output_dir):
+            try:
+                os.makedirs(self.output_dir)
+            except OSError:
+                print("error occured while creating folder: {0:}".format(self.output_dir))
+
         # Initialize the events and the interface
         self.ui = UI()
         self.reset_ui(enc_models_dir, syn_models_dir, voc_models_dir)
@@ -207,8 +218,11 @@ class Toolbox:
         breaks = [np.zeros(int(0.15 * Synthesizer.sample_rate))] * len(breaks)
         wav = np.concatenate([i for w, b in zip(wavs, breaks) for i in (w, b)])
 
-        # Play it
+        # Save it
         wav = wav / np.abs(wav).max() * 0.97
+        write("{0:}/{1:}".format(self.output_dir, 'vocoded-mimic.wav'), Synthesizer.sample_rate, wav)
+      
+        # Play it
         self.ui.play(wav, Synthesizer.sample_rate)
 
         # Compute the embedding
