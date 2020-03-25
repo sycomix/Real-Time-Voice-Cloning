@@ -33,6 +33,7 @@ pip install -r rtvc/requirements.txt
 Run the code with (**Currently not working due to a missing lib**)
 
 ```
+cd rtvc
 python demo_cli.py
 ```
 
