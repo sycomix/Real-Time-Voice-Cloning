@@ -11,7 +11,7 @@ def print_size_of_model(model):
 
 
 def main():
-    saved_model_dir = './saved_model/'
+    saved_model_dir = './saved_models/'
     float_model_file = 'pretrained.pt'
 
     # create directory
