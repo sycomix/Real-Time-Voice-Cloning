@@ -30,10 +30,41 @@ pip install -r rtvc/requirements.txt
 
 ### Play with the project
 
-Run the code with (**Currently not working due to a missing lib**)
+
+#### Commmandline:
+
+For the command line interface, put the pre-trained models in the correct locations
+
+```
+rtvc/vocoder/saved_models/pretrained/pretrained.pt
+rtvc/synthesizer/saved_models/logs-pretrained/taco_pretrained/<tf checkpoints>
+rtvc/encoder/saved_models/pretrained/pretrained.pt
+```
+
+And run the code with:
 
 ```
 cd rtvc
 python demo_cli.py
 ```
+
+#### Graphical interface:
+
+```
+cd rtvc
+python demo_toolbox.py
+```
+
+
+### Quantization experiments
+
+Files associatied with quantization can be found in:
+
+```
+quantization-encoder
+quant_demo_enc.ipynb
+quant_demo_synth.ipynb
+quantization-vocoder
+```
+
 
