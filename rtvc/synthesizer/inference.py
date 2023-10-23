@@ -29,12 +29,14 @@ class Synthesizer:
         """
         self.verbose = verbose
         self._low_mem = low_mem
-        
+
         # Prepare the model
         self._model = None  # type: Tacotron2
         checkpoint_state = tf.train.get_checkpoint_state(checkpoints_dir)
         if checkpoint_state is None:
-            raise Exception("Could not find any synthesizer weights under %s" % checkpoints_dir)
+            raise Exception(
+                f"Could not find any synthesizer weights under {checkpoints_dir}"
+            )
         self.checkpoint_fpath = checkpoint_state.model_checkpoint_path
         if verbose:
             model_name = checkpoints_dir.parent.name.replace("logs-", "")
@@ -119,13 +121,12 @@ class Synthesizer:
         Creates a mel spectrogram from an audio file in the same manner as the mel spectrograms that 
         were fed to the synthesizer when training.
         """
-        if isinstance(fpath_or_wav, str) or isinstance(fpath_or_wav, Path):
+        if isinstance(fpath_or_wav, (str, Path)):
             wav = Synthesizer.load_preprocess_wav(fpath_or_wav)
         else:
             wav = fpath_or_wav
-        
-        mel_spectrogram = audio.melspectrogram(wav, hparams).astype(np.float32)
-        return mel_spectrogram
+
+        return audio.melspectrogram(wav, hparams).astype(np.float32)
     
     @staticmethod
     def griffin_lim(mel):

@@ -142,12 +142,13 @@ class TacotronDecoderCell(RNNCell):
 			`batch_size` does not match the output size of the encoder passed
 			to the wrapper object at initialization time.
 		"""
-		with ops.name_scope(type(self).__name__ + "ZeroState", values=[batch_size]):
+		with ops.name_scope(f"{type(self).__name__}ZeroState", values=[batch_size]):
 			cell_state = self._cell._cell.zero_state(batch_size, dtype)
 			error_message = (
-				"When calling zero_state of TacotronDecoderCell %s: " % self._base_name +
-				"Non-matching batch sizes between the memory "
-				"(encoder output) and the requested batch size.")
+				f"When calling zero_state of TacotronDecoderCell {self._base_name}: "
+				+ "Non-matching batch sizes between the memory "
+				"(encoder output) and the requested batch size."
+			)
 			with ops.control_dependencies(
 				self._batch_size_checks(batch_size, error_message)):
 				cell_state = nest.map_structure(

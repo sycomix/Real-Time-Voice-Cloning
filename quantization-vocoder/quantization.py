@@ -54,7 +54,7 @@ def main():
     print_size_of_model(myModel)
     print("Size of model after quantization(MB): ", end="")
     print_size_of_model(myModel_quantized)
-    quantized_model_file = saved_model_dir + './quantized.pt'
+    quantized_model_file = f'{saved_model_dir}./quantized.pt'
     torch.save({"model_state":myModel_quantized.state_dict()}, quantized_model_file)
 
 if __name__ == '__main__':

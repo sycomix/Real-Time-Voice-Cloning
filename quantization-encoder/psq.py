@@ -62,8 +62,12 @@ def main():
     print("Size of model after quantization: ", end="")
     step = checkpoint['step']
     store_file = {'step': step, 'model_state': myModel.state_dict(), 'quantized': True}
-    torch.save(store_file, saved_model_dir + "quantized.pt")
-    print('{0:} (MB):'.format(os.path.getsize(saved_model_dir + "quantized.pt")/1e6))
+    torch.save(store_file, f"{saved_model_dir}quantized.pt")
+    print(
+        '{0:} (MB):'.format(
+            os.path.getsize(f"{saved_model_dir}quantized.pt") / 1e6
+        )
+    )
 
 
 

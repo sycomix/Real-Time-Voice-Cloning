@@ -18,11 +18,11 @@ def preprocess_librispeech(datasets_root: Path, out_dir: Path, n_processes: int,
                   dataset_root.joinpath("train-clean-360")]
     print("\n    ".join(map(str, ["Using data from:"] + input_dirs)))
     assert all(input_dir.exists() for input_dir in input_dirs)
-    
+
     # Create the output directories for each output file type
     out_dir.joinpath("mels").mkdir(exist_ok=True)
     out_dir.joinpath("audio").mkdir(exist_ok=True)
-    
+
     # Create a metadata file
     metadata_fpath = out_dir.joinpath("train.txt")
     metadata_file = metadata_fpath.open("a" if skip_existing else "w", encoding="utf-8")
@@ -40,8 +40,8 @@ def preprocess_librispeech(datasets_root: Path, out_dir: Path, n_processes: int,
     # Verify the contents of the metadata file
     with metadata_fpath.open("r", encoding="utf-8") as metadata_file:
         metadata = [line.split("|") for line in metadata_file]
-    mel_frames = sum([int(m[4]) for m in metadata])
-    timesteps = sum([int(m[3]) for m in metadata])
+    mel_frames = sum(int(m[4]) for m in metadata)
+    timesteps = sum(int(m[3]) for m in metadata)
     sample_rate = hparams.sample_rate
     hours = (timesteps / sample_rate) / 3600
     print("The dataset consists of %d utterances, %d mel frames, %d audio timesteps (%.2f hours)." %
@@ -62,21 +62,21 @@ def preprocess_speaker(speaker_dir, out_dir: Path, skip_existing: bool, hparams)
         except StopIteration:
             # A few alignment files will be missing
             continue
-        
+
         # Iterate over each entry in the alignments file
         for wav_fname, words, end_times in alignments:
-            wav_fpath = book_dir.joinpath(wav_fname + ".flac")
+            wav_fpath = book_dir.joinpath(f"{wav_fname}.flac")
             assert wav_fpath.exists()
             words = words.replace("\"", "").split(",")
             end_times = list(map(float, end_times.replace("\"", "").split(",")))
-            
+
             # Process each sub-utterance
             wavs, texts = split_on_silences(wav_fpath, words, end_times, hparams)
             for i, (wav, text) in enumerate(zip(wavs, texts)):
                 sub_basename = "%s_%02d" % (wav_fname, i)
                 metadata.append(process_utterance(wav, text, out_dir, sub_basename, 
                                                   skip_existing, hparams))
-    
+
     return [m for m in metadata if m is not None]
 
 
@@ -165,32 +165,39 @@ def process_utterance(wav: np.ndarray, text: str, out_dir: Path, basename: str,
     # - Librosa pads the waveform before computing the mel spectrogram. Here, the waveform is saved
     #   without extra padding. This means that you won't have an exact relation between the length
     #   of the wav and of the mel spectrogram. See the vocoder data loader.
-    
-    
+
+
     # Skip existing utterances if needed
-    mel_fpath = out_dir.joinpath("mels", "mel-%s.npy" % basename)
-    wav_fpath = out_dir.joinpath("audio", "audio-%s.npy" % basename)
+    mel_fpath = out_dir.joinpath("mels", f"mel-{basename}.npy")
+    wav_fpath = out_dir.joinpath("audio", f"audio-{basename}.npy")
     if skip_existing and mel_fpath.exists() and wav_fpath.exists():
         return None
-    
+
     # Skip utterances that are too short
     if len(wav) < hparams.utterance_min_duration * hparams.sample_rate:
         return None
-    
+
     # Compute the mel spectrogram
     mel_spectrogram = audio.melspectrogram(wav, hparams).astype(np.float32)
     mel_frames = mel_spectrogram.shape[1]
-    
+
     # Skip utterances that are too long
     if mel_frames > hparams.max_mel_frames and hparams.clip_mels_length:
         return None
-    
+
     # Write the spectrogram, embed and audio to disk
     np.save(mel_fpath, mel_spectrogram.T, allow_pickle=False)
     np.save(wav_fpath, wav, allow_pickle=False)
-    
+
     # Return a tuple describing this training example
-    return wav_fpath.name, mel_fpath.name, "embed-%s.npy" % basename, len(wav), mel_frames, text
+    return (
+        wav_fpath.name,
+        mel_fpath.name,
+        f"embed-{basename}.npy",
+        len(wav),
+        mel_frames,
+        text,
+    )
  
  
 def embed_utterance(fpaths, encoder_model_fpath):

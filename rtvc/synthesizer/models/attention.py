@@ -199,9 +199,5 @@ class LocationSensitiveAttention(BahdanauAttention):
 		alignments = self._probability_fn(energy, previous_alignments)
 
 		# Cumulate alignments
-		if self._cumulate:
-			next_state = alignments + previous_alignments
-		else:
-			next_state = alignments
-
+		next_state = alignments + previous_alignments if self._cumulate else alignments
 		return alignments, next_state

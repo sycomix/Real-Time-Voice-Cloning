@@ -23,19 +23,24 @@ class CBHG:
         self.K = K
         self.conv_channels = conv_channels
         self.pool_size = pool_size
-        
+
         self.projections = projections
         self.projection_kernel_size = projection_kernel_size
-        
+
         self.is_training = is_training
         self.scope = "CBHG" if name is None else name
-        
+
         self.highway_units = highway_units
         self.highwaynet_layers = [
-            HighwayNet(highway_units, name="{}_highwaynet_{}".format(self.scope, i + 1)) for i in
-            range(n_highwaynet_layers)]
-        self._fw_cell = tf.nn.rnn_cell.GRUCell(rnn_units, name="{}_forward_RNN".format(self.scope))
-        self._bw_cell = tf.nn.rnn_cell.GRUCell(rnn_units, name="{}_backward_RNN".format(self.scope))
+            HighwayNet(highway_units, name=f"{self.scope}_highwaynet_{i + 1}")
+            for i in range(n_highwaynet_layers)
+        ]
+        self._fw_cell = tf.nn.rnn_cell.GRUCell(
+            rnn_units, name=f"{self.scope}_forward_RNN"
+        )
+        self._bw_cell = tf.nn.rnn_cell.GRUCell(
+            rnn_units, name=f"{self.scope}_backward_RNN"
+        )
     
     def __call__(self, inputs, input_lengths):
         with tf.variable_scope(self.scope):
@@ -46,11 +51,21 @@ class CBHG:
                 # of the input sequence
                 # This makes one of the strengths of the CBHG block on sequences.
                 conv_outputs = tf.concat(
-                    [conv1d(inputs, k, self.conv_channels, tf.nn.relu, self.is_training, 0.,
-                            "conv1d_{}".format(k)) for k in range(1, self.K + 1)],
-                    axis=-1
+                    [
+                        conv1d(
+                            inputs,
+                            k,
+                            self.conv_channels,
+                            tf.nn.relu,
+                            self.is_training,
+                            0.0,
+                            f"conv1d_{k}",
+                        )
+                        for k in range(1, self.K + 1)
+                    ],
+                    axis=-1,
                 )
-            
+
             # Maxpooling (dimension reduction, Using max instead of average helps finding "Edges" 
 			# in mels)
             maxpool_output = tf.layers.max_pooling1d(
@@ -58,26 +73,26 @@ class CBHG:
                 pool_size=self.pool_size,
                 strides=1,
                 padding="same")
-            
+
             # Two projection layers
             proj1_output = conv1d(maxpool_output, self.projection_kernel_size, self.projections[0],
                                   tf.nn.relu, self.is_training, 0., "proj1")
             proj2_output = conv1d(proj1_output, self.projection_kernel_size, self.projections[1],
                                   lambda _: _, self.is_training, 0., "proj2")
-            
+
             # Residual connection
             highway_input = proj2_output + inputs
-            
+
             # Additional projection in case of dimension mismatch (for HighwayNet "residual" 
 			# connection)
             if highway_input.shape[2] != self.highway_units:
                 highway_input = tf.layers.dense(highway_input, self.highway_units)
-            
+
             # 4-layer HighwayNet
             for highwaynet in self.highwaynet_layers:
                 highway_input = highwaynet(highway_input)
             rnn_input = highway_input
-            
+
             # Bidirectional RNN
             outputs, states = tf.nn.bidirectional_dynamic_rnn(
                 self._fw_cell,
@@ -187,9 +202,15 @@ class EncoderConvolutions:
         with tf.variable_scope(self.scope):
             x = inputs
             for i in range(self.enc_conv_num_layers):
-                x = conv1d(x, self.kernel_size, self.channels, self.activation,
-                           self.is_training, self.drop_rate,
-                           "conv_layer_{}_".format(i + 1) + self.scope)
+                x = conv1d(
+                    x,
+                    self.kernel_size,
+                    self.channels,
+                    self.activation,
+                    self.is_training,
+                    self.drop_rate,
+                    f"conv_layer_{i + 1}_{self.scope}",
+                )
         return x
 
 
@@ -262,15 +283,23 @@ class Prenet:
     
     def __call__(self, inputs):
         x = inputs
-        
+
         with tf.variable_scope(self.scope):
             for i, size in enumerate(self.layers_sizes):
-                dense = tf.layers.dense(x, units=size, activation=self.activation,
-                                        name="dense_{}".format(i + 1))
+                dense = tf.layers.dense(
+                    x,
+                    units=size,
+                    activation=self.activation,
+                    name=f"dense_{i + 1}",
+                )
                 # The paper discussed introducing diversity in generation at inference time
                 # by using a dropout of 0.5 only in prenet layers (in both training and inference).
-                x = tf.layers.dropout(dense, rate=self.drop_rate, training=True,
-                                      name="dropout_{}".format(i + 1) + self.scope)
+                x = tf.layers.dropout(
+                    dense,
+                    rate=self.drop_rate,
+                    training=True,
+                    name=f"dropout_{i + 1}{self.scope}",
+                )
         return x
 
 
@@ -289,19 +318,24 @@ class DecoderRNN:
         """
         super(DecoderRNN, self).__init__()
         self.is_training = is_training
-        
+
         self.layers = layers
         self.size = size
         self.zoneout = zoneout
         self.scope = "decoder_rnn" if scope is None else scope
-        
+
         # Create a set of LSTM layers
-        self.rnn_layers = [ZoneoutLSTMCell(size, is_training,
-                                           zoneout_factor_cell=zoneout,
-                                           zoneout_factor_output=zoneout,
-                                           name="decoder_LSTM_{}".format(i + 1)) for i in
-                           range(layers)]
-        
+        self.rnn_layers = [
+            ZoneoutLSTMCell(
+                size,
+                is_training,
+                zoneout_factor_cell=zoneout,
+                zoneout_factor_output=zoneout,
+                name=f"decoder_LSTM_{i + 1}",
+            )
+            for i in range(layers)
+        ]
+
         self._cell = tf.contrib.rnn.MultiRNNCell(self.rnn_layers, state_is_tuple=True)
     
     def __call__(self, inputs, states):
@@ -322,23 +356,18 @@ class FrameProjection:
             scope: FrameProjection scope.
         """
         super(FrameProjection, self).__init__()
-        
+
         self.shape = shape
         self.activation = activation
-        
+
         self.scope = "Linear_projection" if scope is None else scope
-        self.dense = tf.layers.Dense(units=shape, activation=activation,
-                                     name="projection_{}".format(self.scope))
+        self.dense = tf.layers.Dense(
+            units=shape, activation=activation, name=f"projection_{self.scope}"
+        )
     
     def __call__(self, inputs):
         with tf.variable_scope(self.scope):
-            # If activation==None, this returns a simple Linear projection
-            # else the projection will be passed through an activation function
-            # output = tf.layers.dense(inputs, units=self.shape, activation=self.activation,
-            # 	name="projection_{}".format(self.scope))
-            output = self.dense(inputs)
-            
-            return output
+            return self.dense(inputs)
 
 
 class StopProjection:
@@ -363,14 +392,16 @@ class StopProjection:
     
     def __call__(self, inputs):
         with tf.variable_scope(self.scope):
-            output = tf.layers.dense(inputs, units=self.shape,
-                                     activation=None, name="projection_{}".format(self.scope))
-            
+            output = tf.layers.dense(
+                inputs,
+                units=self.shape,
+                activation=None,
+                name=f"projection_{self.scope}",
+            )
+
             # During training, don"t use activation as it is integrated inside the 
 			# sigmoid_cross_entropy loss function
-            if self.is_training:
-                return output
-            return self.activation(output)
+            return output if self.is_training else self.activation(output)
 
 
 class Postnet:
@@ -402,12 +433,24 @@ class Postnet:
         with tf.variable_scope(self.scope):
             x = inputs
             for i in range(self.postnet_num_layers - 1):
-                x = conv1d(x, self.kernel_size, self.channels, self.activation,
-                           self.is_training, self.drop_rate,
-                           "conv_layer_{}_".format(i + 1) + self.scope)
-            x = conv1d(x, self.kernel_size, self.channels, lambda _: _, self.is_training,
-                       self.drop_rate,
-                       "conv_layer_{}_".format(5) + self.scope)
+                x = conv1d(
+                    x,
+                    self.kernel_size,
+                    self.channels,
+                    self.activation,
+                    self.is_training,
+                    self.drop_rate,
+                    f"conv_layer_{i + 1}_{self.scope}",
+                )
+            x = conv1d(
+                x,
+                self.kernel_size,
+                self.channels,
+                lambda _: _,
+                self.is_training,
+                self.drop_rate,
+                f"conv_layer_5_{self.scope}",
+            )
         return x
 
 
@@ -421,19 +464,22 @@ def conv1d(inputs, kernel_size, channels, activation, is_training, drop_rate, sc
             padding="same")
         batched = tf.layers.batch_normalization(conv1d_output, training=is_training)
         activated = activation(batched)
-        return tf.layers.dropout(activated, rate=drop_rate, training=is_training,
-                                 name="dropout_{}".format(scope))
+        return tf.layers.dropout(
+            activated,
+            rate=drop_rate,
+            training=is_training,
+            name=f"dropout_{scope}",
+        )
 
 
 def _round_up_tf(x, multiple):
     # Tf version of remainder = x % multiple
     remainder = tf.mod(x, multiple)
-    # Tf version of return x if remainder == 0 else x + multiple - remainder
-    x_round = tf.cond(tf.equal(remainder, tf.zeros(tf.shape(remainder), dtype=tf.int32)),
-                      lambda: x,
-                      lambda: x + multiple - remainder)
-    
-    return x_round
+    return tf.cond(
+        tf.equal(remainder, tf.zeros(tf.shape(remainder), dtype=tf.int32)),
+        lambda: x,
+        lambda: x + multiple - remainder,
+    )
 
 
 def sequence_mask(lengths, r, expand=True):

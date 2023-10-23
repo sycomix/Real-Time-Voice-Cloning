@@ -213,32 +213,32 @@ class UI(QDialog):
             if datasets_root is not None:
                 datasets = [datasets_root.joinpath(d) for d in recognized_datasets]
                 datasets = [d.relative_to(datasets_root) for d in datasets if d.exists()]
-                self.browser_load_button.setDisabled(len(datasets) == 0)
+                self.browser_load_button.setDisabled(not datasets)
             if datasets_root is None or len(datasets) == 0:
                 msg = "Warning: you d" + ("id not pass a root directory for datasets as argument" \
-                    if datasets_root is None else "o not have any of the recognized datasets" \
-                                                  " in %s" % datasets_root) 
+                        if datasets_root is None else "o not have any of the recognized datasets" \
+                                                      " in %s" % datasets_root) 
                 self.log(msg)
                 msg += ".\nThe recognized datasets are:\n\t%s\nFeel free to add your own. You " \
-                       "can still use the toolbox by recording samples yourself." % \
-                       ("\n\t".join(recognized_datasets))
+                           "can still use the toolbox by recording samples yourself." % \
+                           ("\n\t".join(recognized_datasets))
                 print(msg, file=sys.stderr)
-                
+
                 self.random_utterance_button.setDisabled(True)
                 self.random_speaker_button.setDisabled(True)
                 self.random_dataset_button.setDisabled(True)
                 self.utterance_box.setDisabled(True)
                 self.speaker_box.setDisabled(True)
                 self.dataset_box.setDisabled(True)
-                return 
+                return
             self.repopulate_box(self.dataset_box, datasets, random)
-    
+
         # Select a random speaker
         if level <= 1:
             speakers_root = datasets_root.joinpath(self.current_dataset_name)
             speaker_names = [d.stem for d in speakers_root.glob("*") if d.is_dir()]
             self.repopulate_box(self.speaker_box, speaker_names, random)
-    
+
         # Select a random utterance
         if level <= 2:
             utterances_root = datasets_root.joinpath(
@@ -247,7 +247,7 @@ class UI(QDialog):
             )
             utterances = []
             for extension in ['mp3', 'flac', 'wav', 'm4a']:
-                utterances.extend(Path(utterances_root).glob("**/*.%s" % extension))
+                utterances.extend(Path(utterances_root).glob(f"**/*.{extension}"))
             utterances = [fpath.relative_to(utterances_root) for fpath in utterances]
             self.repopulate_box(self.utterance_box, utterances, random)
             
@@ -271,14 +271,14 @@ class UI(QDialog):
                         vocoder_models_dir: Path):
         # Encoder
         encoder_fpaths = list(encoder_models_dir.glob("*.pt"))
-        if len(encoder_fpaths) == 0:
-            raise Exception("No encoder models found in %s" % encoder_models_dir)
+        if not encoder_fpaths:
+            raise Exception(f"No encoder models found in {encoder_models_dir}")
         self.repopulate_box(self.encoder_box, [(f.stem, f) for f in encoder_fpaths])
-        
+
         # Synthesizer
         synthesizer_model_dirs = list(synthesizer_models_dir.glob("*"))
         synthesizer_items = [(f.name.replace("logs-", ""), f) for f in synthesizer_model_dirs]
-        if len(synthesizer_model_dirs) == 0:
+        if not synthesizer_model_dirs:
             raise Exception("No synthesizer models found in %s. For the synthesizer, the expected "
                             "structure is <syn_models_dir>/logs-<model_name>/taco_pretrained/"
                             "checkpoint" % synthesizer_models_dir)

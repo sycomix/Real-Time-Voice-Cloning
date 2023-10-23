@@ -33,19 +33,15 @@ class Visualizations:
         self.losses = []
         self.eers = []
         print("Updating the visualizations every %d steps." % update_every)
-        
+
         # If visdom is disabled TODO: use a better paradigm for that
-        self.disabled = disabled    
+        self.disabled = disabled
         if self.disabled:
             return 
-        
+
         # Set the environment name
         now = str(datetime.now().strftime("%d-%m %Hh%M"))
-        if env_name is None:
-            self.env_name = now
-        else:
-            self.env_name = "%s (%s)" % (env_name, now)
-        
+        self.env_name = now if env_name is None else f"{env_name} ({now})"
         # Connect to visdom and open the corresponding window in the browser
         try:
             self.vis = visdom.Visdom(server, env=self.env_name, raise_exceptions=True)
@@ -53,7 +49,7 @@ class Visualizations:
             raise Exception("No visdom server detected. Run the command \"visdom\" in your CLI to "
                             "start it.")
         # webbrowser.open("http://localhost:8097/env/" + self.env_name)
-        
+
         # Create the windows
         self.loss_win = None
         self.eer_win = None
@@ -107,12 +103,12 @@ class Visualizations:
         self.losses.append(loss)
         self.eers.append(eer)
         print(".", end="")
-        
+
         # Update the plots every <update_every> steps
         if step % self.update_every != 0:
             return
         time_string = "Step time:  mean: %5dms  std: %5dms" % \
-                      (int(np.mean(self.step_times)), int(np.std(self.step_times)))
+                          (int(np.mean(self.step_times)), int(np.std(self.step_times)))
         print("\nStep %6d   Loss: %.4f   EER: %.4f   %s" %
               (step, np.mean(self.losses), np.mean(self.eers), time_string))
         if not self.disabled:
@@ -142,7 +138,7 @@ class Visualizations:
             )
             if self.implementation_win is not None:
                 self.vis.text(
-                    self.implementation_string + ("<b>%s</b>" % time_string), 
+                    f"{self.implementation_string}<b>{time_string}</b>",
                     win=self.implementation_win,
                     opts={"title": "Training implementation"},
                 )

@@ -16,7 +16,7 @@ def init(filename, run_name, slack_url=None):
 	_file = open(filename, "a")
 	_file = open(filename, "a")
 	_file.write("\n-----------------------------------------------------------------\n")
-	_file.write("Starting new {} training run\n".format(run_name))
+	_file.write(f"Starting new {run_name} training run\n")
 	_file.write("-----------------------------------------------------------------\n")
 	_run_name = run_name
 	_slack_url = slack_url
@@ -40,11 +40,16 @@ def _close_logfile():
 def _send_slack(msg):
 	req = Request(_slack_url)
 	req.add_header("Content-Type", "application/json")
-	urlopen(req, json.dumps({
-		"username": "tacotron",
-		"icon_emoji": ":taco:",
-		"text": "*%s*: %s" % (_run_name, msg)
-	}).encode())
+	urlopen(
+		req,
+		json.dumps(
+			{
+				"username": "tacotron",
+				"icon_emoji": ":taco:",
+				"text": f"*{_run_name}*: {msg}",
+			}
+		).encode(),
+	)
 
 
 atexit.register(_close_logfile)

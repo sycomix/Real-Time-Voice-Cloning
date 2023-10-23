@@ -50,10 +50,9 @@ def embed_frames_batch(frames_batch):
     """
     if _model is None:
         raise Exception("Model was not loaded. Call load_model() before inference.")
-    
+
     frames = torch.from_numpy(frames_batch).to(_device)
-    embed = _model.forward(frames).detach().cpu().numpy()
-    return embed
+    return _model.forward(frames).detach().cpu().numpy()
 
 
 def compute_partial_slices(n_samples, partial_utterance_n_frames=partials_n_frames,
@@ -131,28 +130,23 @@ def embed_utterance(wav, using_partials=True, return_partials=False, **kwargs):
     if not using_partials:
         frames = audio.wav_to_mel_spectrogram(wav)
         embed = embed_frames_batch(frames[None, ...])[0]
-        if return_partials:
-            return embed, None, None
-        return embed
-    
+        return (embed, None, None) if return_partials else embed
     # Compute where to split the utterance into partials and pad if necessary
     wave_slices, mel_slices = compute_partial_slices(len(wav), **kwargs)
     max_wave_length = wave_slices[-1].stop
     if max_wave_length >= len(wav):
         wav = np.pad(wav, (0, max_wave_length - len(wav)), "constant")
-    
+
     # Split the utterance into partials
     frames = audio.wav_to_mel_spectrogram(wav)
     frames_batch = np.array([frames[s] for s in mel_slices])
     partial_embeds = embed_frames_batch(frames_batch)
-    
+
     # Compute the utterance embedding from the partial embeddings
     raw_embed = np.mean(partial_embeds, axis=0)
     embed = raw_embed / np.linalg.norm(raw_embed, 2)
-    
-    if return_partials:
-        return embed, partial_embeds, wave_slices
-    return embed
+
+    return (embed, partial_embeds, wave_slices) if return_partials else embed
 
 
 def embed_speaker(wavs, **kwargs):

@@ -28,7 +28,7 @@ class Feeder:
 		with open(metadata_filename, encoding="utf-8") as f:
 			self._metadata = [line.strip().split("|") for line in f]
 			frame_shift_ms = hparams.hop_size / hparams.sample_rate
-			hours = sum([int(x[4]) for x in self._metadata]) * frame_shift_ms / (3600)
+			hours = sum(int(x[4]) for x in self._metadata) * frame_shift_ms / 3600
 			log("Loaded metadata for {} examples ({:.2f} hours)".format(len(self._metadata), hours))
 
 		#Train test split
@@ -59,10 +59,7 @@ class Feeder:
 		self._pad = 0
 		#explicitely setting the padding to a value that doesn"t originally exist in the spectogram
 		#to avoid any possible conflicts, without affecting the output range of the model too much
-		if hparams.symmetric_mels:
-			self._target_pad = -hparams.max_abs_value
-		else:
-			self._target_pad = 0.
+		self._target_pad = -hparams.max_abs_value if hparams.symmetric_mels else 0.
 		#Mark finished sequences with 1s
 		self._token_pad = 1.
 
@@ -78,7 +75,7 @@ class Feeder:
 				tf.placeholder(tf.int32, shape=(None, ), name="targets_lengths"),
 				tf.placeholder(tf.int32, shape=(hparams.tacotron_num_gpus, None), 
 							   name="split_infos"),
-				
+
 				# SV2TTS
 				tf.placeholder(tf.float32, shape=(None, hparams.speaker_embedding_size), 
 							   name="speaker_embeddings")
@@ -89,7 +86,7 @@ class Feeder:
 									 tf.int32, tf.int32, tf.float32], name="input_queue")
 			self._enqueue_op = queue.enqueue(self._placeholders)
 			self.inputs, self.input_lengths, self.mel_targets, self.token_targets, \
-				self.targets_lengths, self.split_infos, self.speaker_embeddings = queue.dequeue()
+					self.targets_lengths, self.split_infos, self.speaker_embeddings = queue.dequeue()
 
 			self.inputs.set_shape(self._placeholders[0].shape)
 			self.input_lengths.set_shape(self._placeholders[1].shape)
@@ -104,8 +101,8 @@ class Feeder:
 										  tf.int32, tf.int32, tf.float32], name="eval_queue")
 			self._eval_enqueue_op = eval_queue.enqueue(self._placeholders)
 			self.eval_inputs, self.eval_input_lengths, self.eval_mel_targets, \
-				self.eval_token_targets, self.eval_targets_lengths, \
-				self.eval_split_infos, self.eval_speaker_embeddings = eval_queue.dequeue()
+					self.eval_token_targets, self.eval_targets_lengths, \
+					self.eval_split_infos, self.eval_speaker_embeddings = eval_queue.dequeue()
 
 			self.eval_inputs.set_shape(self._placeholders[0].shape)
 			self.eval_input_lengths.set_shape(self._placeholders[1].shape)
@@ -147,7 +144,7 @@ class Feeder:
 		r = self._hparams.outputs_per_step
 
 		#Test on entire test set
-		examples = [self._get_test_groups() for i in range(len(self._test_meta))]
+		examples = [self._get_test_groups() for _ in range(len(self._test_meta))]
 
 		# Bucket examples based on similar output sequence length for efficiency
 		examples.sort(key=lambda x: x[-1])
@@ -164,7 +161,7 @@ class Feeder:
 			# Read a group of examples
 			n = self._hparams.tacotron_batch_size
 			r = self._hparams.outputs_per_step
-			examples = [self._get_next_example() for i in range(n * _batches_per_group)]
+			examples = [self._get_next_example() for _ in range(n * _batches_per_group)]
 
 			# Bucket examples based on similar output sequence length for efficiency
 			examples.sort(key=lambda x: x[-1])
@@ -241,16 +238,16 @@ class Feeder:
 			   split_infos, embed_targets
 
 	def _prepare_inputs(self, inputs):
-		max_len = max([len(x) for x in inputs])
+		max_len = max(len(x) for x in inputs)
 		return np.stack([self._pad_input(x, max_len) for x in inputs]), max_len
 
 	def _prepare_targets(self, targets, alignment):
-		max_len = max([len(t) for t in targets])
+		max_len = max(len(t) for t in targets)
 		data_len = self._round_up(max_len, alignment)
 		return np.stack([self._pad_target(t, data_len) for t in targets]), data_len
 
 	def _prepare_token_targets(self, targets, alignment):
-		max_len = max([len(t) for t in targets]) + 1
+		max_len = max(len(t) for t in targets) + 1
 		data_len = self._round_up(max_len, alignment)
 		return np.stack([self._pad_token_target(t, data_len) for t in targets]), data_len
 

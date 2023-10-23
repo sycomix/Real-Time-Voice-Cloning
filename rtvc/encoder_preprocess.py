@@ -5,9 +5,10 @@ import argparse
 
 
 if __name__ == "__main__":
+
     class MyFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
         pass
-    
+
     parser = argparse.ArgumentParser(
         description="Preprocesses audio files from datasets, encodes them as mel spectrograms and "
                     "writes them to the disk. This will allow you to train the encoder. The "
@@ -45,7 +46,7 @@ if __name__ == "__main__":
         args.out_dir = args.datasets_root.joinpath("SV2TTS", "encoder")
     assert args.datasets_root.exists()
     args.out_dir.mkdir(exist_ok=True, parents=True)
-    
+
     # Preprocess the datasets
     print_args(args, parser)
     preprocess_func = {
@@ -55,5 +56,5 @@ if __name__ == "__main__":
     }
     args = vars(args)
     for dataset in args.pop("datasets"):
-        print("Preprocessing %s" % dataset)
+        print(f"Preprocessing {dataset}")
         preprocess_func[dataset](**args)

@@ -40,11 +40,12 @@ class CustomDecoder(decoder.Decoder):
 		"""
 		rnn_cell_impl.assert_like_rnncell(type(cell), cell)
 		if not isinstance(helper, helper_py.Helper):
-			raise TypeError("helper must be a Helper, received: %s" % type(helper))
+			raise TypeError(f"helper must be a Helper, received: {type(helper)}")
 		if (output_layer is not None
 				and not isinstance(output_layer, layers_base.Layer)):
 			raise TypeError(
-					"output_layer must be a Layer, received: %s" % type(output_layer))
+				f"output_layer must be a Layer, received: {type(output_layer)}"
+			)
 		self._cell = cell
 		self._helper = helper
 		self._initial_state = initial_state
@@ -58,19 +59,18 @@ class CustomDecoder(decoder.Decoder):
 		size = self._cell.output_size
 		if self._output_layer is None:
 			return size
-		else:
-			# To use layer"s compute_output_shape, we need to convert the
-			# RNNCell"s output_size entries into shapes with an unknown
-			# batch size.  We then pass this through the layer"s
-			# compute_output_shape and read off all but the first (batch)
-			# dimensions to get the output size of the rnn with the layer
-			# applied to the top.
-			output_shape_with_unknown_batch = nest.map_structure(
-					lambda s: tensor_shape.TensorShape([None]).concatenate(s),
-					size)
-			layer_output_shape = self._output_layer._compute_output_shape(  # pylint: disable=protected-access
-					output_shape_with_unknown_batch)
-			return nest.map_structure(lambda s: s[1:], layer_output_shape)
+		# To use layer"s compute_output_shape, we need to convert the
+		# RNNCell"s output_size entries into shapes with an unknown
+		# batch size.  We then pass this through the layer"s
+		# compute_output_shape and read off all but the first (batch)
+		# dimensions to get the output size of the rnn with the layer
+		# applied to the top.
+		output_shape_with_unknown_batch = nest.map_structure(
+				lambda s: tensor_shape.TensorShape([None]).concatenate(s),
+				size)
+		layer_output_shape = self._output_layer._compute_output_shape(  # pylint: disable=protected-access
+				output_shape_with_unknown_batch)
+		return nest.map_structure(lambda s: s[1:], layer_output_shape)
 
 	@property
 	def output_size(self):
